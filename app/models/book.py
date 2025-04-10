@@ -7,6 +7,3 @@ class Book(BaseModel):
     author: str
     review: Annotated[int | None, Field(ge=1, le=5)]
 
-
-book = Book(id=1, title = "titolo", author = "autore", review = 5)
-print(book)

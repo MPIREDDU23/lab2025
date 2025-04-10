@@ -1,10 +1,8 @@
 from fastapi import FastAPI
-from models import Book
-from data.books import books
+from routers import books
 
 app = FastAPI()
-
-@app.get("/books") 
-def get_all_books() -> list[Book]:
-    """ Get all books. """
-    return list(books.values())
+app.include_router(books.router, tags=["books"])
+if __name__   == 'main':
+    import uvicorn
+    uvicorn.app
