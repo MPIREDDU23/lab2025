@@ -5,5 +5,5 @@ class Book(BaseModel):
     id: int
     title: str
     author: str
-    review: Annotated[int | None, Field(ge=1, le=5)]
+    review: Annotated[int | None, Field(ge=1, le=5)] = None
 
