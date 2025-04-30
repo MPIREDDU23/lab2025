@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from data.books import books
+
 
 templates = Jinja2Templates(directory= "app/templates")
 
@@ -14,5 +16,18 @@ def home(request: Request):
 
     return templates.TemplateResponse(
         request=request, name="home.html",
-        context={"text": text}
+        context={
+            "text": text
+                 }
+    )
+
+@router.get("/book_list", response_class=HTMLResponse)
+def show_book_list(request: Request):
+
+    context = {"books" : list(books.values())}
+    title = 2
+    return templates.TemplateResponse(
+        request=request, 
+        name="list.html",
+        context=context
     )
