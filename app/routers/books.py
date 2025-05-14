@@ -1,3 +1,5 @@
+#!/opt/homebrew/bin/python3
+
 from fastapi import APIRouter, HTTPException, Path #HTTPException serve per gestire le eccezioni
 from models.book import Book
 from models.review import Review

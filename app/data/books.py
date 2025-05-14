@@ -1,3 +1,5 @@
+#!/opt/homebrew/bin/python3
+
 from models.book import Book 
 
 books = {

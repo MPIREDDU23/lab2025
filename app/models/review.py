@@ -1,3 +1,5 @@
+#!/opt/homebrew/bin/python3
+
 from pydantic import BaseModel, Field
 from typing import Annotated
 

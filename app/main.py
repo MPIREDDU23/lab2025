@@ -1,3 +1,5 @@
+#!/opt/homebrew/bin/python3
+
 from fastapi import FastAPI, Request
 from routers import books, frontend
 from fastapi.responses import HTMLResponse
