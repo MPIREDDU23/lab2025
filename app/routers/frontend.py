@@ -29,7 +29,14 @@ def show_book_list(request: Request):
     context = {"books" : list(books.values())}
     title = 2
     return templates.TemplateResponse(
-        request=request, 
+        request=request,
         name="list.html",
         context=context
+    )
+
+@router.get("/add_book_form", response_class=HTMLResponse)
+def add_book_form(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="add.html"
     )

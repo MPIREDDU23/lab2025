@@ -1,15 +1,16 @@
 #!/opt/homebrew/bin/python3
 
-from fastapi import APIRouter, HTTPException, Path #HTTPException serve per gestire le eccezioni
+from fastapi import APIRouter, Request, HTTPException, Path, Form #HTTPException serve per gestire le eccezioni
 from models.book import Book
 from models.review import Review
 from data.books import books
-from typing import Annotated # Annotated serve per annotare i parametri, definire il tipo di dato e 
+from typing import Annotated # Annotated serve per annotare i parametri, definire il tipo di dato e
 from pydantic import ValidationError
+from fastapi.responses import RedirectResponse
 
 # / è il root path, ovvero la radice dell'applicazione
 # ad esempio http://localhost:8000/ quindi il primo livello
-# dell' host (in questo caso localhost) 
+# dell' host (in questo caso localhost)
 
 # books è al secondo livello
 # se definiamo sotto livelli di /books
@@ -39,6 +40,18 @@ def add_book(
     books[book.id] = book
     return "Book successfully added."
 
+@router.post("_form/")
+def add_book_from_form(
+    request: Request,
+    book: Annotated[Book, Form()]
+):
+    """ Add book from form. """
+    if book.id in books:
+        raise HTTPException(status_code=403, detail="Book ID already exists.")
+    books[book.id] = book
+    url = request.url_for("show_book_list")
+    return RedirectResponse(url=url, status_code=303)
+
 @router.delete("/")
 def delete_all_books():
     """ Delete all books. """
@@ -54,7 +67,7 @@ def delete_book(
         raise HTTPException(status_code=404, detail="Book not found.")
     del books[id]
     return "Book successfully deleted."
-   
+
 
 @router.put("/{id}")
 def update_book(
@@ -66,7 +79,7 @@ def update_book(
         raise HTTPException(status_code=404, detail="Book not found.")
     books[id] = book
     return "Book successfully updated."
- 
+
 # /books/{id}
 @router.get("/{id}")
 def get_book_by_id(
@@ -79,10 +92,10 @@ def get_book_by_id(
     # raise keyError
     except KeyError:
         raise HTTPException(status_code=404, detail="Book not found.")
-    
+
 @router.post("/{id}/review")
 def add_review(
-    id: Annotated[int, Path(ge=1, le=5)], 
+    id: Annotated[int, Path(ge=1, le=5)],
     review: Review
 ):
     """ Add review to book. """
@@ -93,3 +106,4 @@ def add_review(
         raise HTTPException(status_code=404, detail="Book not found.")
     except ValidationError:
         raise HTTPException(status_code=400, detail="The review must be between 1 and 5.")
+
