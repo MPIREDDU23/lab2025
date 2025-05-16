@@ -1,11 +1,18 @@
-#!/opt/homebrew/bin/python3
+#!/Users/marcopireddu/miniconda3/envs/pw/bin/python
 
-from pydantic import BaseModel, Field
+from sqlmodel import SQLModel, Field
 from typing import Annotated
 
-class Book(BaseModel):
-    id: int
+class BookBase(SQLModel):
     title: str
     author: str
-    review: Annotated[int | None, Field(ge=1, le=5)] = None
+    review: Annotated[int, Field(ge=0, le=5)]
 
+class Book(BookBase, table=True):
+    id: int = Field(default=None, primary_key=True)
+
+class BookCreate(BookBase):
+    pass
+
+class BookPublic(BookBase):
+    id: int

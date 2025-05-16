@@ -1,12 +1,13 @@
-#!/opt/homebrew/bin/python3
+#!/Users/marcopireddu/miniconda3/envs/pw/bin/python
 
 from fastapi import APIRouter, Request, HTTPException, Path, Form #HTTPException serve per gestire le eccezioni
-from models.book import Book
+from models.book import BookCreate, Book, BookPublic
 from models.review import Review
-from data.books import books
 from typing import Annotated # Annotated serve per annotare i parametri, definire il tipo di dato e
 from pydantic import ValidationError
 from fastapi.responses import RedirectResponse
+from data.db import SessionDep
+from sqlmodel import select
 
 # / è il root path, ovvero la radice dell'applicazione
 # ad esempio http://localhost:8000/ quindi il primo livello
@@ -21,89 +22,111 @@ from fastapi.responses import RedirectResponse
 router = APIRouter(prefix="/books")
 @router.get("/")
 def get_all_books(
+    session: SessionDep,
+    request: Request,
     sort: bool = False
-) -> list[Book]:
+) -> list[BookPublic]:
     """ Get all books. """
+    statement = select(Book)
+    books = session.exec(statement).all()
     if sort:
-        return sorted(books.values(), key=lambda book: book.id)
-    return list(books.values())
+        return sorted(books, key=lambda book: book.id)
+    return list(books)
 
 @router.post("/")
 def add_book(
-    book: Book
+    request: Request,
+    book: BookCreate,
+    session: SessionDep
 ):
     """ Add a new book. """
-    if book.id in books:
-        raise HTTPException(status_code=403, detail="Book ID already exists.")
-        # 403 è il codice di errore per forbidden, quindi tipo accesso negato alla risorsa
-        # è adatto al nostro caso, in cui il libro esiste già
-    books[book.id] = book
+    validated_book = Book.model_validate(book)
+    session.add(validated_book)
+    session.commit()
     return "Book successfully added."
 
 @router.post("_form/")
 def add_book_from_form(
     request: Request,
-    book: Annotated[Book, Form()]
-):
-    """ Add book from form. """
-    if book.id in books:
-        raise HTTPException(status_code=403, detail="Book ID already exists.")
-    books[book.id] = book
-    url = request.url_for("show_book_list")
-    return RedirectResponse(url=url, status_code=303)
+    session: SessionDep,
+    book: Annotated[BookCreate, Form()],
+    ):
+    """ Add a new book from form. """
+    validated_book = Book.model_validate(book)
+    session.add(validated_book)
+    session.commit()
+    return "Book successfully added."
 
 @router.delete("/")
-def delete_all_books():
+def delete_all_books(session: SessionDep):
     """ Delete all books. """
-    books.clear()
+    statement = select(Book)
+    session.exec(statement).delete()
+    session.commit()
     return "All books successfully deleted."
 
 @router.delete("/{id}")
 def delete_book(
+    session: SessionDep,
     id: Annotated[int, Path(description="The ID of the book to delete.")]
 ):
     """ Delete the book with the given ID. """
-    if id not in books:
+    statement = select(Book).where(Book.id == id)
+    # questa get si può fare solo con la chiave primaria
+    book = session.get(Book, id)
+    # if not book: non è robusto. potrebbe essere restituito un booleanno oltre che None.
+    if book is None:
         raise HTTPException(status_code=404, detail="Book not found.")
-    del books[id]
+    session.delete(book)
+    session.commit()
     return "Book successfully deleted."
-
 
 @router.put("/{id}")
 def update_book(
+    session: SessionDep,
     id: Annotated[int, Path(description="The ID of the book to update.")],
-    book: Book
+    newbook: BookCreate
 ):
     """ Updates the book with the given ID. """
-    if id not in books:
+    book = session.get(Book, id)
+
+    if book is None:
         raise HTTPException(status_code=404, detail="Book not found.")
-    books[id] = book
-    return "Book successfully updated."
+
+    book.author = newbook.autore
+    book.title = newbook.title
+    book.review = newbook.review
+
+    session.add(book)
+    session.commit()
 
 # /books/{id}
 @router.get("/{id}")
 def get_book_by_id(
+        session: SessionDep,
         id: Annotated[int, Path(description="The ID of the book to request.")] # id deve essere compreso tra 1 e 3
-    ) -> Book:
+    ) -> BookPublic:
     """ Get book by id. """
-    try:
-        return books[id]
-    # se l'id non esiste, solleva un'eccezione
-    # raise keyError
-    except KeyError:
+    # questa get si può fare solo con la chiave primaria
+    book = session.get(Book, id)
+    if book is None:
         raise HTTPException(status_code=404, detail="Book not found.")
+    return book
 
 @router.post("/{id}/review")
 def add_review(
+    session: SessionDep,
     id: Annotated[int, Path(ge=1, le=5)],
     review: Review
 ):
     """ Add review to book. """
-    try:
-        books[id].review = review.review
-        return "Review successfully added."
-    except KeyError:
-        raise HTTPException(status_code=404, detail="Book not found.")
-    except ValidationError:
-        raise HTTPException(status_code=400, detail="The review must be between 1 and 5.")
+    # questa get si può fare solo con la chiave primaria
+    book = session.get(Book, id)
 
+    if book is None:
+        raise HTTPException(status_code=404, detail="Book not found.")
+
+    book.review = review.review
+    session.commit()
+
+    return "Review successfully added."

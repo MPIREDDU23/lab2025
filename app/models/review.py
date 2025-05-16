@@ -1,9 +1,9 @@
-#!/opt/homebrew/bin/python3
+#!/Users/marcopireddu/miniconda3/envs/pw/bin/python
 
 from pydantic import BaseModel, Field
 from typing import Annotated
 
-class Review(BaseModel): 
+class Review(BaseModel):
     review: Annotated[int, Field(ge=1, le=5)] # review deve essere compreso tra 1 e 5
     # se arriva un numero minore di 1 o maggiore di 5
     # solleva un'eccezione, vogliamo personalizzare il messaggio
