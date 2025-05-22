@@ -7,7 +7,7 @@ from typing import Annotated # Annotated serve per annotare i parametri, definir
 from pydantic import ValidationError
 from fastapi.responses import RedirectResponse
 from data.db import SessionDep
-from sqlmodel import select
+from sqlmodel import select, delete
 
 # / è il root path, ovvero la radice dell'applicazione
 # ad esempio http://localhost:8000/ quindi il primo livello
@@ -60,8 +60,8 @@ def add_book_from_form(
 @router.delete("/")
 def delete_all_books(session: SessionDep):
     """ Delete all books. """
-    statement = select(Book)
-    session.exec(statement).delete()
+    statement = delete(Book)
+    session.exec(statement)
     session.commit()
     return "All books successfully deleted."
 
